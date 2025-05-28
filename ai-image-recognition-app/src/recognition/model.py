@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import io
 import cv2
+import face_recognition
 
 class ImageRecognitionModel:
     def __init__(self, model_path):
@@ -27,22 +28,20 @@ class ImageRecognitionModel:
         return labels
 
 def load_model():
-    # Load OpenCV's pre-trained Haar Cascade for face detection
-    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    face_cascade = cv2.CascadeClassifier(cascade_path)
-    return face_cascade
+    # face_recognition does not require explicit model loading
+    return None
 
 def predict_image(image_bytes, model):
-    # Decode image bytes to numpy array
-    file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    if img is None:
-        return {"faces": []}
-
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    faces = model.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-    # faces: list of (x, y, w, h)
+    # Load image from bytes
+    img = face_recognition.load_image_file(io.BytesIO(image_bytes))
+    # Detect faces
+    face_locations = face_recognition.face_locations(img)
+    # face_locations: list of (top, right, bottom, left)
     faces_list = []
-    for (x, y, w, h) in faces:
+    for (top, right, bottom, left) in face_locations:
+        x = left
+        y = top
+        w = right - left
+        h = bottom - top
         faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
     return {"faces": faces_list}

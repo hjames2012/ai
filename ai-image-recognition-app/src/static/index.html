@@ -2,40 +2,90 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AI Image Recognition</title>
+    <title>Face Detection App</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 2em; }
+        #canvas-container { position: relative; display: inline-block; }
+        #overlay { position: absolute; left: 0; top: 0; }
         #result { margin-top: 1em; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>AI Image Recognition</h1>
+    <h1>Face Detection</h1>
     <form id="upload-form">
         <input type="file" id="file-input" accept="image/*" required>
-        <button type="submit">Upload Image</button>
+        <button type="submit">Detect Faces</button>
     </form>
+    <div id="canvas-container" style="margin-top:1em;">
+        <canvas id="image-canvas"></canvas>
+        <canvas id="overlay"></canvas>
+    </div>
     <div id="result"></div>
     <script>
         const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const imageCanvas = document.getElementById('image-canvas');
+        const overlay = document.getElementById('overlay');
         const resultDiv = document.getElementById('result');
+        let image = new Image();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const fileInput = document.getElementById('file-input');
             if (!fileInput.files.length) return;
 
+            const file = fileInput.files[0];
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('file', file);
 
-            resultDiv.textContent = "Predicting...";
+            // Load image to canvas
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                image.onload = function() {
+                    imageCanvas.width = image.width;
+                    imageCanvas.height = image.height;
+                    overlay.width = image.width;
+                    overlay.height = image.height;
+                    const ctx = imageCanvas.getContext('2d');
+                    ctx.drawImage(image, 0, 0);
+                };
+                image.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
 
+            resultDiv.textContent = "Detecting faces...";
+
+            // Send to backend
             try {
                 const response = await fetch('/predict/', {
                     method: 'POST',
                     body: formData
                 });
                 const data = await response.json();
-                resultDiv.textContent = "Prediction: " + data.prediction;
+
+                // Draw rectangles
+                image.onload = function() {
+                    imageCanvas.width = image.width;
+                    imageCanvas.height = image.height;
+                    overlay.width = image.width;
+                    overlay.height = image.height;
+                    const ctx = imageCanvas.getContext('2d');
+                    ctx.drawImage(image, 0, 0);
+
+                    const octx = overlay.getContext('2d');
+                    octx.clearRect(0, 0, overlay.width, overlay.height);
+                    octx.strokeStyle = 'red';
+                    octx.lineWidth = 3;
+                    if (data.faces && data.faces.length > 0) {
+                        data.faces.forEach(face => {
+                            octx.strokeRect(face.x, face.y, face.w, face.h);
+                        });
+                        resultDiv.textContent = `Detected ${data.faces.length} face(s).`;
+                    } else {
+                        resultDiv.textContent = "No faces detected.";
+                    }
+                };
+                // If image already loaded, trigger onload manually
+                if (image.complete) image.onload();
             } catch (err) {
                 resultDiv.textContent = "Error: " + err;
             }

@@ -1,9 +1,11 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from recognition.model import load_model, predict_image
 import uvicorn
 
 app = FastAPI()
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 model = load_model()
 

@@ -3,6 +3,7 @@ from tensorflow.keras.utils import load_img, img_to_array
 import numpy as np
 from PIL import Image
 import io
+import cv2
 
 class ImageRecognitionModel:
     def __init__(self, model_path):
@@ -26,15 +27,22 @@ class ImageRecognitionModel:
         return labels
 
 def load_model():
-    # Dummy model for example; replace with actual model loading
-    return None
+    # Load OpenCV's pre-trained Haar Cascade for face detection
+    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    face_cascade = cv2.CascadeClassifier(cascade_path)
+    return face_cascade
 
 def predict_image(image_bytes, model):
-    # Load image from bytes
-    img = load_img(io.BytesIO(image_bytes), target_size=(224, 224))
-    img_array = img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    # Decode image bytes to numpy array
+    file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
+    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if img is None:
+        return {"faces": []}
 
-    # Dummy prediction logic; replace with actual model prediction
-    # Example: always returns "cat"
-    return "cat"
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = model.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    # faces: list of (x, y, w, h)
+    faces_list = []
+    for (x, y, w, h) in faces:
+        faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+    return {"faces": faces_list}

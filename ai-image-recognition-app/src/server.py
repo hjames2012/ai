@@ -12,8 +12,8 @@ model = load_model()
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
-    prediction = predict_image(contents, model)
-    return JSONResponse(content={"prediction": prediction})
+    result = predict_image(contents, model)
+    return JSONResponse(content=result)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

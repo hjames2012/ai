@@ -5,6 +5,9 @@ from PIL import Image
 import io
 import cv2
 import face_recognition
+import os
+
+DB_DIR = os.path.join(os.path.dirname(__file__), "../../face_db")
 
 class ImageRecognitionModel:
     def __init__(self, model_path):
@@ -28,22 +31,37 @@ class ImageRecognitionModel:
         return labels
 
 def load_model():
-    return None
+    known_encodings = []
+    known_names = []
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+    for filename in os.listdir(DB_DIR):
+        if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+            name = os.path.splitext(filename)[0]
+            img_path = os.path.join(DB_DIR, filename)
+            img = face_recognition.load_image_file(img_path)
+            encodings = face_recognition.face_encodings(img)
+            if encodings:
+                known_encodings.append(encodings[0])
+                known_names.append(name)
+    return {"encodings": known_encodings, "names": known_names}
 
 def predict_image(image_bytes, model):
-    try:
-        img = face_recognition.load_image_file(io.BytesIO(image_bytes))
-        print("Image loaded, shape:", img.shape)
-        face_locations = face_recognition.face_locations(img)
-        print("Detected faces:", face_locations)
-        faces_list = []
-        for (top, right, bottom, left) in face_locations:
-            x = left
-            y = top
-            w = right - left
-            h = bottom - top
-            faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
-        return {"faces": faces_list}
-    except Exception as e:
-        print("Error in face detection:", e)
-        return {"faces": []}
+    img = face_recognition.load_image_file(io.BytesIO(image_bytes))
+    face_locations = face_recognition.face_locations(img)
+    face_encodings = face_recognition.face_encodings(img, face_locations)
+    results = []
+    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+        matches = face_recognition.compare_faces(model["encodings"], face_encoding, tolerance=0.5)
+        name = "Unknown"
+        if True in matches:
+            first_match_index = matches.index(True)
+            name = model["names"][first_match_index]
+        results.append({
+            "x": left,
+            "y": top,
+            "w": right - left,
+            "h": bottom - top,
+            "name": name
+        })
+    return {"faces": results}

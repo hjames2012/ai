@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Face Detection App</title>
+    <title>Face Recognition App</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
     <style>
         body {
@@ -96,12 +96,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>Face Detection</h1>
+        <h1>Face Recognition</h1>
         <form id="upload-form">
             <label class="upload-label" for="file-input">Choose Image</label>
             <input type="file" id="file-input" accept="image/*" required>
             <br>
-            <button type="submit">Detect Faces</button>
+            <button type="submit">Recognize Faces</button>
         </form>
         <div id="canvas-container" style="display:none;">
             <canvas id="image-canvas"></canvas>
@@ -152,7 +152,7 @@
             };
             reader.readAsDataURL(file);
 
-            resultDiv.textContent = "Detecting faces...";
+            resultDiv.textContent = "Recognizing faces...";
 
             // Send to backend
             try {
@@ -178,9 +178,12 @@
                     octx.lineWidth = 4;
                     octx.shadowColor = "#b721ff";
                     octx.shadowBlur = 10;
+                    octx.font = "bold 20px Montserrat, Arial";
+                    octx.fillStyle = "#21d4fd";
                     if (data.faces && data.faces.length > 0) {
                         data.faces.forEach(face => {
                             octx.strokeRect(face.x, face.y, face.w, face.h);
+                            octx.fillText(face.name, face.x, face.y > 20 ? face.y - 8 : face.y + 24);
                         });
                         resultDiv.textContent = `🎉 Detected ${data.faces.length} face(s)!`;
                     } else {

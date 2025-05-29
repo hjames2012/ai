@@ -39,7 +39,7 @@
             text-decoration: underline;
         }
         .container {
-            max-width: 480px;
+            max-width: 540px;
             margin: 40px auto;
             background: rgba(30, 30, 40, 0.95);
             border-radius: 18px;
@@ -66,6 +66,7 @@
             padding: 0.5em 1em;
             border-radius: 8px;
             gap: 1em;
+            flex-wrap: wrap;
         }
         .person-name {
             font-weight: 600;
@@ -76,7 +77,7 @@
             height: 48px;
             object-fit: cover;
             border-radius: 8px;
-            margin-right: 1em;
+            margin-right: 0.5em;
             border: 2px solid #21d4fd;
             background: #111;
         }
@@ -92,6 +93,22 @@
             transition: background 0.2s;
         }
         .delete-btn:hover {
+            background: #ff4b2b;
+        }
+        .img-delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            background: #ff416c;
+            border: none;
+            color: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .img-delete-btn:hover {
             background: #ff4b2b;
         }
         .add-form {
@@ -140,6 +157,35 @@
             border: 2px solid #b721ff;
             background: #111;
         }
+        #spinner {
+            display: none;
+            font-size: 1.2em;
+            margin: 1em 0;
+        }
+        #toast {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #21d4fd;
+            color: #fff;
+            padding: 1em 2em;
+            border-radius: 8px;
+            z-index: 1000;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        }
+        .search-box {
+            width: 100%;
+            padding: 0.5em;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1em;
+            font-size: 1em;
+            background: #232526;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +195,8 @@
     </nav>
     <div class="container">
         <h1>Manage Database</h1>
+        <input class="search-box" id="search" placeholder="Search people...">
+        <div id="spinner">⏳ Loading...</div>
         <div id="people-list" class="person-list"></div>
         <form id="add-form" class="add-form">
             <label for="name-input">Person's Name</label>
@@ -160,6 +208,7 @@
         </form>
         <div id="status" class="status"></div>
     </div>
+    <div id="toast"></div>
     <script>
         const peopleList = document.getElementById('people-list');
         const addForm = document.getElementById('add-form');
@@ -167,54 +216,100 @@
         const fileInput = document.getElementById('file-input');
         const statusDiv = document.getElementById('status');
         const previewImg = document.getElementById('preview');
+        const spinner = document.getElementById('spinner');
+        const toast = document.getElementById('toast');
+        const searchBox = document.getElementById('search');
 
-        async function loadPeople() {
-            peopleList.innerHTML = "Loading...";
-            const res = await fetch('/db/list/');
-            const data = await res.json();
-            if (data.people.length === 0) {
+        let allPeople = [];
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        function renderPeople(people) {
+            peopleList.innerHTML = "";
+            if (people.length === 0) {
                 peopleList.innerHTML = "<i>No people in database.</i>";
                 return;
             }
-            peopleList.innerHTML = "";
-peopleList.innerHTML = "";
-for (const person of data.people) {
-    let imgsHtml = "";
-    for (const img of person.images) {
-        const filename = img.split('/').pop();
-        imgsHtml += `
-            <div style="display:inline-block;position:relative;">
-                <img class="person-img" src="/face_db/${img}" alt="${person.name}" onerror="this.style.display='none'">
-                <button class="delete-btn" style="position:absolute;top:2px;right:2px;padding:2px 6px;font-size:0.8em;" 
-                    data-name="${person.name}" data-filename="${filename}">&times;</button>
-            </div>`;
-    }
-    const div = document.createElement('div');
-    div.className = "person-item";
-    div.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.5em;flex-wrap:wrap;">${imgsHtml}</div>
-        <span class="person-name">${person.name}</span>
-        <button class="delete-btn" data-name="${person.name}">Delete All</button>`;
-    peopleList.appendChild(div);
-}
-// Add event listeners for image delete buttons
-document.querySelectorAll('.delete-btn[data-filename]').forEach(btn => {
-    btn.onclick = async () => {
-        if (confirm(`Delete this image for ${btn.dataset.name}?`)) {
-            const formData = new FormData();
-            formData.append('name', btn.dataset.name);
-            formData.append('filename', btn.dataset.filename);
-            const res = await fetch('/db/delete_image/', {
-                method: 'POST',
-                body: formData
+            for (const person of people) {
+                let imgsHtml = "";
+                for (const img of person.images) {
+                    const filename = img.split('/').pop();
+                    imgsHtml += `
+                        <div style="display:inline-block;position:relative;">
+                            <img class="person-img" src="/face_db/${img}" alt="${person.name}" onerror="this.style.display='none'">
+                            <button class="img-delete-btn" title="Delete image" data-name="${person.name}" data-filename="${filename}">&times;</button>
+                        </div>`;
+                }
+                const div = document.createElement('div');
+                div.className = "person-item";
+                div.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:0.5em;flex-wrap:wrap;">${imgsHtml}</div>
+                    <span class="person-name">${person.name} (${person.images.length} images)</span>
+                    <button class="delete-btn" data-name="${person.name}">Delete All</button>`;
+                peopleList.appendChild(div);
+            }
+            // Add event listeners for image delete buttons
+            document.querySelectorAll('.img-delete-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    if (confirm(`Delete this image for ${btn.dataset.name}?`)) {
+                        spinner.style.display = "block";
+                        const formData = new FormData();
+                        formData.append('name', btn.dataset.name);
+                        formData.append('filename', btn.dataset.filename);
+                        const res = await fetch('/db/delete_image/', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        spinner.style.display = "none";
+                        const result = await res.json();
+                        showToast(`Deleted image: ${result.filename}`);
+                        loadPeople();
+                    }
+                };
             });
-            const result = await res.json();
-            statusDiv.textContent = `Deleted image: ${result.filename}`;
-            loadPeople();
+            // Add event listeners for person delete buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    if (confirm(`Delete all images for ${btn.dataset.name}?`)) {
+                        spinner.style.display = "block";
+                        const formData = new FormData();
+                        formData.append('name', btn.dataset.name);
+                        const res = await fetch('/db/delete/', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        spinner.style.display = "none";
+                        const result = await res.json();
+                        showToast(`Deleted: ${result.name}`);
+                        loadPeople();
+                    }
+                };
+            });
         }
-    };
-});
+
+        async function loadPeople() {
+            spinner.style.display = "block";
+            const res = await fetch('/db/list/');
+            const data = await res.json();
+            spinner.style.display = "none";
+            allPeople = data.people;
+            filterPeople();
         }
+
+        function filterPeople() {
+            const query = searchBox.value.trim().toLowerCase();
+            if (!query) {
+                renderPeople(allPeople);
+            } else {
+                renderPeople(allPeople.filter(p => p.name.toLowerCase().includes(query)));
+            }
+        }
+
+        searchBox.addEventListener('input', filterPeople);
 
         fileInput.addEventListener('change', function() {
             if (fileInput.files.length) {
@@ -233,16 +328,17 @@ document.querySelectorAll('.delete-btn[data-filename]').forEach(btn => {
         addForm.onsubmit = async (e) => {
             e.preventDefault();
             if (!nameInput.value.trim() || !fileInput.files.length) return;
+            spinner.style.display = "block";
             const formData = new FormData();
             formData.append('name', nameInput.value.trim());
             formData.append('file', fileInput.files[0]);
-            statusDiv.textContent = "Adding...";
             const res = await fetch('/db/add/', {
                 method: 'POST',
                 body: formData
             });
+            spinner.style.display = "none";
             const result = await res.json();
-            statusDiv.textContent = `Added: ${result.name}`;
+            showToast(`Added: ${result.name}`);
             nameInput.value = "";
             fileInput.value = "";
             previewImg.style.display = "none";

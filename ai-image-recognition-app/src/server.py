@@ -68,5 +68,17 @@ async def delete_person(name: str = Form(...)):
     model = load_model()  # Reload model after deletion
     return {"status": "deleted" if deleted else "not found", "name": name}
 
+@app.post("/db/delete_image/")
+async def delete_image(name: str = Form(...), filename: str = Form(...)):
+    person_dir = os.path.join(DB_DIR, name)
+    file_path = os.path.join(person_dir, filename)
+    deleted = False
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        deleted = True
+    global model
+    model = load_model()
+    return {"status": "deleted" if deleted else "not found", "name": name, "filename": filename}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -181,31 +181,39 @@ peopleList.innerHTML = "";
 for (const person of data.people) {
     let imgsHtml = "";
     for (const img of person.images) {
-        imgsHtml += `<img class="person-img" src="/face_db/${img}" alt="${person.name}" onerror="this.style.display='none'">`;
+        const filename = img.split('/').pop();
+        imgsHtml += `
+            <div style="display:inline-block;position:relative;">
+                <img class="person-img" src="/face_db/${img}" alt="${person.name}" onerror="this.style.display='none'">
+                <button class="delete-btn" style="position:absolute;top:2px;right:2px;padding:2px 6px;font-size:0.8em;" 
+                    data-name="${person.name}" data-filename="${filename}">&times;</button>
+            </div>`;
     }
     const div = document.createElement('div');
     div.className = "person-item";
     div.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.5em;">${imgsHtml}</div>
+        <div style="display:flex;align-items:center;gap:0.5em;flex-wrap:wrap;">${imgsHtml}</div>
         <span class="person-name">${person.name}</span>
-        <button class="delete-btn" data-name="${person.name}">Delete</button>`;
+        <button class="delete-btn" data-name="${person.name}">Delete All</button>`;
     peopleList.appendChild(div);
 }
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.onclick = async () => {
-                    if (confirm(`Delete ${btn.dataset.name}?`)) {
-                        const formData = new FormData();
-                        formData.append('name', btn.dataset.name);
-                        const res = await fetch('/db/delete/', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const result = await res.json();
-                        statusDiv.textContent = `Deleted: ${result.name}`;
-                        loadPeople();
-                    }
-                };
+// Add event listeners for image delete buttons
+document.querySelectorAll('.delete-btn[data-filename]').forEach(btn => {
+    btn.onclick = async () => {
+        if (confirm(`Delete this image for ${btn.dataset.name}?`)) {
+            const formData = new FormData();
+            formData.append('name', btn.dataset.name);
+            formData.append('filename', btn.dataset.filename);
+            const res = await fetch('/db/delete_image/', {
+                method: 'POST',
+                body: formData
             });
+            const result = await res.json();
+            statusDiv.textContent = `Deleted image: ${result.filename}`;
+            loadPeople();
+        }
+    };
+});
         }
 
         fileInput.addEventListener('change', function() {

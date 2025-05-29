@@ -180,15 +180,17 @@
                     octx.shadowBlur = 10;
                     octx.font = "bold 20px Montserrat, Arial";
                     octx.fillStyle = "#21d4fd";
-                    if (data.faces && data.faces.length > 0) {
-                        data.faces.forEach(face => {
-                            octx.strokeRect(face.x, face.y, face.w, face.h);
-                            octx.fillText(face.name, face.x, face.y > 20 ? face.y - 8 : face.y + 24);
-                        });
-                        resultDiv.textContent = `🎉 Detected ${data.faces.length} face(s)!`;
-                    } else {
-                        resultDiv.textContent = "😕 No faces detected.";
-                    }
+if (data.faces && data.faces.length > 0) {
+    data.faces.forEach(face => {
+        octx.strokeRect(face.x, face.y, face.w, face.h);
+        octx.fillText(face.name, face.x, face.y > 20 ? face.y - 8 : face.y + 24);
+    });
+    // List names under the message
+    const names = data.faces.map(face => face.name || "Unknown");
+    resultDiv.innerHTML = `🎉 Detected ${data.faces.length} face(s)!<br><br><b>Identified:</b> ${names.join(', ')}`;
+} else {
+    resultDiv.textContent = "😕 No faces detected.";
+}
                 };
                 if (image.complete) image.onload();
             } catch (err) {

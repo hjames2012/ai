@@ -3,31 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <title>Face Detection App</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 2em; }
-        #canvas-container { position: relative; display: inline-block; }
-        #overlay { position: absolute; left: 0; top: 0; }
-        #result { margin-top: 1em; font-weight: bold; }
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+            color: #fff;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 480px;
+            margin: 60px auto;
+            background: rgba(30, 30, 40, 0.95);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            padding: 2.5em 2em 2em 2em;
+            text-align: center;
+        }
+        h1 {
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 0.5em;
+            font-size: 2.2em;
+        }
+        .upload-label {
+            display: inline-block;
+            background: #ff416c;
+            background: linear-gradient(90deg, #ff4b2b 0%, #ff416c 100%);
+            color: #fff;
+            padding: 0.8em 2em;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 1em;
+            transition: background 0.2s;
+        }
+        .upload-label:hover {
+            background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+        }
+        #file-input {
+            display: none;
+        }
+        button {
+            background: #21d4fd;
+            background: linear-gradient(90deg, #21d4fd 0%, #b721ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 0.7em 2em;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1em;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #b721ff 0%, #21d4fd 100%);
+        }
+        #canvas-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 2em;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            background: #222;
+        }
+        #image-canvas, #overlay {
+            display: block;
+            max-width: 400px;
+            border-radius: 12px;
+        }
+        #overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+        }
+        #result {
+            margin-top: 1.5em;
+            font-weight: 600;
+            font-size: 1.1em;
+            letter-spacing: 0.5px;
+        }
+        .face-box {
+            box-shadow: 0 0 0 2px #21d4fd, 0 0 8px #b721ff;
+        }
     </style>
 </head>
 <body>
-    <h1>Face Detection</h1>
-    <form id="upload-form">
-        <input type="file" id="file-input" accept="image/*" required>
-        <button type="submit">Detect Faces</button>
-    </form>
-    <div id="canvas-container" style="margin-top:1em;">
-        <canvas id="image-canvas"></canvas>
-        <canvas id="overlay"></canvas>
+    <div class="container">
+        <h1>Face Detection</h1>
+        <form id="upload-form">
+            <label class="upload-label" for="file-input">Choose Image</label>
+            <input type="file" id="file-input" accept="image/*" required>
+            <br>
+            <button type="submit">Detect Faces</button>
+        </form>
+        <div id="canvas-container" style="display:none;">
+            <canvas id="image-canvas"></canvas>
+            <canvas id="overlay"></canvas>
+        </div>
+        <div id="result"></div>
     </div>
-    <div id="result"></div>
     <script>
         const form = document.getElementById('upload-form');
         const fileInput = document.getElementById('file-input');
         const imageCanvas = document.getElementById('image-canvas');
         const overlay = document.getElementById('overlay');
         const resultDiv = document.getElementById('result');
+        const canvasContainer = document.getElementById('canvas-container');
         let image = new Image();
+
+        // Show filename on label
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length) {
+                document.querySelector('.upload-label').textContent = fileInput.files[0].name;
+            } else {
+                document.querySelector('.upload-label').textContent = "Choose Image";
+            }
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -45,7 +143,9 @@
                     imageCanvas.height = image.height;
                     overlay.width = image.width;
                     overlay.height = image.height;
+                    canvasContainer.style.display = "inline-block";
                     const ctx = imageCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
                     ctx.drawImage(image, 0, 0);
                 };
                 image.src = event.target.result;
@@ -62,29 +162,31 @@
                 });
                 const data = await response.json();
 
-                // Draw rectangles
                 image.onload = function() {
                     imageCanvas.width = image.width;
                     imageCanvas.height = image.height;
                     overlay.width = image.width;
                     overlay.height = image.height;
+                    canvasContainer.style.display = "inline-block";
                     const ctx = imageCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
                     ctx.drawImage(image, 0, 0);
 
                     const octx = overlay.getContext('2d');
                     octx.clearRect(0, 0, overlay.width, overlay.height);
-                    octx.strokeStyle = 'red';
-                    octx.lineWidth = 3;
+                    octx.strokeStyle = '#21d4fd';
+                    octx.lineWidth = 4;
+                    octx.shadowColor = "#b721ff";
+                    octx.shadowBlur = 10;
                     if (data.faces && data.faces.length > 0) {
                         data.faces.forEach(face => {
                             octx.strokeRect(face.x, face.y, face.w, face.h);
                         });
-                        resultDiv.textContent = `Detected ${data.faces.length} face(s).`;
+                        resultDiv.textContent = `🎉 Detected ${data.faces.length} face(s)!`;
                     } else {
-                        resultDiv.textContent = "No faces detected.";
+                        resultDiv.textContent = "😕 No faces detected.";
                     }
                 };
-                // If image already loaded, trigger onload manually
                 if (image.complete) image.onload();
             } catch (err) {
                 resultDiv.textContent = "Error: " + err;

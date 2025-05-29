@@ -28,20 +28,22 @@ class ImageRecognitionModel:
         return labels
 
 def load_model():
-    # face_recognition does not require explicit model loading
     return None
 
 def predict_image(image_bytes, model):
-    # Load image from bytes
-    img = face_recognition.load_image_file(io.BytesIO(image_bytes))
-    # Detect faces
-    face_locations = face_recognition.face_locations(img)
-    # face_locations: list of (top, right, bottom, left)
-    faces_list = []
-    for (top, right, bottom, left) in face_locations:
-        x = left
-        y = top
-        w = right - left
-        h = bottom - top
-        faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
-    return {"faces": faces_list}
+    try:
+        img = face_recognition.load_image_file(io.BytesIO(image_bytes))
+        print("Image loaded, shape:", img.shape)
+        face_locations = face_recognition.face_locations(img)
+        print("Detected faces:", face_locations)
+        faces_list = []
+        for (top, right, bottom, left) in face_locations:
+            x = left
+            y = top
+            w = right - left
+            h = bottom - top
+            faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+        return {"faces": faces_list}
+    except Exception as e:
+        print("Error in face detection:", e)
+        return {"faces": []}

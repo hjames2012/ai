@@ -13,6 +13,31 @@
             margin: 0;
             padding: 0;
         }
+                .navbar {
+            width: 100%;
+            background: rgba(30, 30, 40, 0.98);
+            padding: 1em 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .nav-link {
+            color: #21d4fd;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1em;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: #b721ff;
+            text-decoration: underline;
+        }
         .container {
             max-width: 480px;
             margin: 60px auto;
@@ -95,6 +120,10 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <a class="nav-link" href="index.html">Face Recognition</a>
+        <a class="nav-link" href="manage.html">Manage Database</a>
+    </nav>
     <div class="container">
         <h1>Face Recognition</h1>
         <form id="upload-form">

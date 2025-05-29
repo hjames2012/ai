@@ -35,15 +35,17 @@ def load_model():
     known_names = []
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
-    for filename in os.listdir(DB_DIR):
-        if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
-            name = os.path.splitext(filename)[0]
-            img_path = os.path.join(DB_DIR, filename)
-            img = face_recognition.load_image_file(img_path)
-            encodings = face_recognition.face_encodings(img)
-            if encodings:
-                known_encodings.append(encodings[0])
-                known_names.append(name)
+    for name in os.listdir(DB_DIR):
+        person_dir = os.path.join(DB_DIR, name)
+        if os.path.isdir(person_dir):
+            for filename in os.listdir(person_dir):
+                if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    img_path = os.path.join(person_dir, filename)
+                    img = face_recognition.load_image_file(img_path)
+                    encodings = face_recognition.face_encodings(img)
+                    if encodings:
+                        known_encodings.append(encodings[0])
+                        known_names.append(name)
     return {"encodings": known_encodings, "names": known_names}
 
 def predict_image(image_bytes, model):

@@ -177,25 +177,18 @@
                 return;
             }
             peopleList.innerHTML = "";
+peopleList.innerHTML = "";
 for (const person of data.people) {
-    let imgSrc = "";
-    const exts = [".jpg", ".jpeg", ".png"];
-    for (const ext of exts) {
-        const url = `/face_db/${person}${ext}`;
-        try {
-            const resp = await fetch(url, {method: "HEAD"});
-            if (resp.ok) {
-                imgSrc = url;
-                break;
-            }
-        } catch {}
+    let imgsHtml = "";
+    for (const img of person.images) {
+        imgsHtml += `<img class="person-img" src="/face_db/${img}" alt="${person.name}" onerror="this.style.display='none'">`;
     }
     const div = document.createElement('div');
     div.className = "person-item";
     div.innerHTML = `
-        <img class="person-img" src="${imgSrc}" alt="${person}" onerror="this.style.display='none'">
-        <span class="person-name">${person}</span>
-        <button class="delete-btn" data-name="${person}">Delete</button>`;
+        <div style="display:flex;align-items:center;gap:0.5em;">${imgsHtml}</div>
+        <span class="person-name">${person.name}</span>
+        <button class="delete-btn" data-name="${person.name}">Delete</button>`;
     peopleList.appendChild(div);
 }
             document.querySelectorAll('.delete-btn').forEach(btn => {

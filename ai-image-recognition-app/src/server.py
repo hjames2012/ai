@@ -6,6 +6,7 @@ from recognition.model import load_model, predict_image
 import uvicorn
 import os
 import shutil
+import uuid
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
@@ -32,28 +33,37 @@ async def predict(file: UploadFile = File(...)):
 @app.get("/db/list/")
 async def list_people():
     people = []
-    for filename in os.listdir(DB_DIR):
-        if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
-            people.append(os.path.splitext(filename)[0])
+    for name in os.listdir(DB_DIR):
+        person_dir = os.path.join(DB_DIR, name)
+        if os.path.isdir(person_dir):
+            images = []
+            for filename in os.listdir(person_dir):
+                if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    images.append(f"{name}/{filename}")
+            if images:
+                people.append({"name": name, "images": images})
     return {"people": people}
 
 @app.post("/db/add/")
 async def add_person(name: str = Form(...), file: UploadFile = File(...)):
+    person_dir = os.path.join(DB_DIR, name)
+    os.makedirs(person_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
-    save_path = os.path.join(DB_DIR, f"{name}{ext}")
+    unique_id = uuid.uuid4().hex[:8]
+    save_path = os.path.join(person_dir, f"{name}_{unique_id}{ext}")
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     global model
-    model = load_model()  # Reload model with new face
+    model = load_model()  # Reload model with new face(s)
     return {"status": "success", "name": name}
 
 @app.post("/db/delete/")
 async def delete_person(name: str = Form(...)):
+    person_dir = os.path.join(DB_DIR, name)
     deleted = False
-    for filename in os.listdir(DB_DIR):
-        if os.path.splitext(filename)[0] == name:
-            os.remove(os.path.join(DB_DIR, filename))
-            deleted = True
+    if os.path.isdir(person_dir):
+        shutil.rmtree(person_dir)
+        deleted = True
     global model
     model = load_model()  # Reload model after deletion
     return {"status": "deleted" if deleted else "not found", "name": name}

@@ -84,12 +84,14 @@ def align_face(img):
 
 def predict_image(image_bytes, model):
     img = face_recognition.load_image_file(io.BytesIO(image_bytes))
+    print("Image shape:", img.shape)  # Add this line
     aligned_face = align_face(img)
     if aligned_face is None:
         print("No aligned face found in predict_image") # Add this line
         return {"faces": []}
 
     face_locations = face_recognition.face_locations(aligned_face)
+    print("Face locations:", face_locations)  # Add this line
     face_encodings = face_recognition.face_encodings(aligned_face, face_locations)
     results = []
     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):

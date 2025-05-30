@@ -90,7 +90,7 @@ def predict_image(image_bytes, model):
         print("No aligned face found in predict_image") # Add this line
         return {"faces": []}
 
-    face_locations = face_recognition.face_locations(aligned_face)
+    face_locations = face_recognition.face_locations(aligned_face, number_of_times_to_upsample=2)
     print("Face locations:", face_locations)  # Add this line
     face_encodings = face_recognition.face_encodings(aligned_face, face_locations)
     results = []

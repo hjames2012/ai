@@ -1,36 +1,39 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:python:ai-image-recognition-app
 version: 2.1
-orbs:
-  python: circleci/python@2
+
+executors:
+  macos-executor:
+    macos:
+      xcode: "14.2.0"  # Or latest available
+    resource_class: macos.medium
+
 jobs:
-  test-python:
-    # Install dependencies and run tests
-    docker:
-      - image: cimg/python:3.8-node
-    working_directory: ~/project/ai-image-recognition-app
+  build-mac-app:
+    executor: macos-executor
     steps:
-      - checkout:
-          path: ~/project
-      - python/install-packages
+      - checkout
       - run:
-          name: Run tests
-          command: pytest --junitxml=junit.xml || ((($? == 5)) && echo 'Did not find any tests to run.')
-      - store_test_results:
-          path: junit.xml
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
+          name: Install Homebrew dependencies
+          command: |
+            brew install python3 create-dmg
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Install Python dependencies
+          command: |
+            python3 -m pip install --upgrade pip
+            python3 -m pip install pyinstaller pyqt5 google-generativeai requests python-dotenv speechrecognition pyaudio
+      - run:
+          name: Build .app with PyInstaller
+          command: |
+            python3 -m PyInstaller --noconfirm --windowed --onefile --name "Gemini AI Chat" --add-data=.env:. desktop_app.py
+      - run:
+          name: Create DMG installer
+          command: |
+            create-dmg "dist/Gemini AI Chat.app"
+      - store_artifacts:
+          path: dist
+          destination: dist
+
 workflows:
-  build-and-test:
+  version: 2
+  build:
     jobs:
-      - test-python
-    # - deploy:
-    #     requires:
-    #       - test-python
+      - build-mac-app
